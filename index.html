@@ -1,251 +1,59 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>กำลังหาเซิร์ฟเวอร์...</title>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>S2KLAOS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    :root {
-      --bg: #0f1115;
-      --fg: #d0d4e4;
-      --muted: #8b90a5;
-      --accent: #00ffcc;
-      --ring: #2b2f3b;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
+    body, html {
       margin: 0;
-      background: radial-gradient(1200px 600px at 50% -10%, #171923 0%, var(--bg) 60%);
-      color: var(--fg);
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-      display: grid;
-      place-items: center;
-      padding: 24px;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
     }
-    .card {
-      width: min(520px, 92vw);
-      background: rgba(255,255,255,0.02);
-      border: 1px solid var(--ring);
-      border-radius: 16px;
-      padding: 28px 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
-      text-align: center;
+    iframe {
+      border: none;
+      width: 100%;
+      height: 100%;
     }
-    .spinner {
-      margin: 6px auto 18px;
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      border: 8px solid #2a2f3a;
-      border-top-color: var(--accent);
-      animation: spin 0.9s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    h1 {
-      font-size: 18px;
-      margin: 0 0 6px;
-      color: var(--fg);
-      letter-spacing: .2px;
-    }
-    p {
-      margin: 0 0 14px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 21px;
-    }
-    .row {
-      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-      margin-top: 10px;
-    }
-    button {
-      appearance: none;
-      border: 1px solid var(--ring);
-      background: #171b24;
-      color: var(--fg);
-      padding: 10px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
-    }
-    button:hover { border-color: #3a4154; }
-    button:active { transform: translateY(1px); }
-    .ghost { background: transparent; }
-    .ok { border-color: #26413c; color: #b6ffea; }
-    .hide { display: none; }
-    .list {
-      margin-top: 12px; text-align: left; font-size: 13px; color: #a3a8bd;
-      background: rgba(0,0,0,0.25); border: 1px dashed #2c3242; border-radius: 10px; padding: 10px 12px;
-      max-height: 140px; overflow: auto;
-    }
-    .list b { color: #dbe1ff; font-weight: 600; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid #2c3242; color: #c9cdea; background: #141823; }
   </style>
 </head>
-<body>
+<body cz-shortcut-listen="true">
+  <iframe src="https://s2kauto-icekham.online/" allowfullscreen=""></iframe>
 
-  <div class="card">
-    <div class="spinner" aria-hidden="true"></div>
-    <h1>กำลังตรวจสอบลิงก์ s2klaos...</h1>
-    <p id="status">กรุณารอสักครู่ เรากำลังเลือกเซิร์ฟเวอร์ที่ใช้งานได้ดีที่สุด</p>
 
-    <div class="row">
-      <button id="skipBtn" class="ghost">ข้ามไปลิงก์ถัดไป</button>
-      <button id="retryBtn" class="ghost hide">ลองใหม่</button>
-      <button id="copyBtn" class="ok hide">คัดลอกลิงก์ที่ใช้งานได้</button>
-    </div>
-
-    <div class="list" id="log"></div>
-    <div style="margin-top:10px">
-      <span class="badge" id="badge">กำลังทดสอบ...</span>
-    </div>
-  </div>
-
-<script>
-  // ======= ตั้งค่าลิงก์ที่ต้องการตรวจเรียงตามลำดับความสำคัญ =======
-  const urls = [
-    "https://s2kauto-novaglobal.store/login",
-    "https://s2kauto-icekham.online/login",
-    "https://s2kauto-petneko.online/login"
-  ];
-
-  // ======= ฟังก์ชันทดสอบความเข้าถึงได้ด้วยการโหลดรูปเล็ก ๆ =======
-  // จะลองหลายไฟล์เผื่อบางเว็บไม่มี favicon
-  async function checkReachable(baseUrl, timeoutMs = 5000) {
-    const probes = ["/favicon.ico", "/apple-touch-icon.png", "/favicon.png"];
-    const ts = Date.now();
-
-    // helper: สร้าง promise จากการโหลดรูป
-    const tryImg = (src) => new Promise((resolve) => {
-      let settled = false;
-      const img = new Image();
-
-      const timer = setTimeout(() => {
-        if (!settled) { settled = true; resolve(false); }
-      }, timeoutMs);
-
-      img.onload = () => {
-        if (!settled) { settled = true; clearTimeout(timer); resolve(true); }
-      };
-      img.onerror = () => {
-        if (!settled) { settled = true; clearTimeout(timer); resolve(false); }
-      };
-      img.referrerPolicy = "no-referrer"; // ลดปัญหา CORS บางกรณี
-      img.src = src;
-    });
-
-    // ไล่ลองทีละไฟล์
-    for (const p of probes) {
-      const src = baseUrl.replace(/\/+$/, "") + p + "?t=" + ts;
-      if (await tryImg(src)) return true;
-    }
-    return false;
-  }
-
-  // ======= UI helpers =======
-  const $status = document.getElementById("status");
-  const $log = document.getElementById("log");
-  const $badge = document.getElementById("badge");
-  const $skip = document.getElementById("skipBtn");
-  const $retry = document.getElementById("retryBtn");
-  const $copy = document.getElementById("copyBtn");
-
-  function log(line) {
-    const d = new Date();
-    const hh = d.getHours().toString().padStart(2,"0");
-    const mm = d.getMinutes().toString().padStart(2,"0");
-    const ss = d.getSeconds().toString().padStart(2,"0");
-    $log.innerHTML += `[${hh}:${mm}:${ss}] ${line}<br>`;
-    $log.scrollTop = $log.scrollHeight;
-  }
-
-  function setBadge(text) { $badge.textContent = text; }
-
-  function setButtons({ skip = true, retry = false, copy = false } = {}) {
-    $skip.classList.toggle("hide", !skip);
-    $retry.classList.toggle("hide", !retry);
-    $copy.classList.toggle("hide", !copy);
-  }
-
-  // ======= ตัวจัดการหลัก =======
-  let idx = 0;
-  let cancelled = false;
-  let lastGood = null;
-
-  async function tryNext() {
-    if (cancelled) return;
-
-    if (idx >= urls.length) {
-      $status.textContent = "ไม่พบลิงก์ที่สามารถเข้าได้ในขณะนี้";
-      setBadge("ล้มเหลว");
-      setButtons({ skip: false, retry: true, copy: !!lastGood });
-      return;
-    }
-
-    const url = urls[idx];
-    $status.innerHTML = `กำลังตรวจสอบลิงก์ <b>${url}</b>`;
-    setBadge(`ทดสอบ ${idx + 1}/${urls.length}`);
-    log(`ลองเชื่อมต่อ: <b>${url}</b>`);
-
-    try {
-      const ok = await checkReachable(url, 5000);
-      if (ok) {
-        lastGood = url;
-        $status.innerHTML = `พบลิงก์ที่ใช้งานได้ <b>${url}</b> กำลังเปลี่ยนหน้า...`;
-        setBadge("สำเร็จ");
-        setButtons({ skip: false, retry: false, copy: true });
-        // หน่วงนิดให้ผู้ใช้เห็นข้อความ (ถ้าอยากไว ตัด setTimeout ออกได้)
-        setTimeout(() => { window.location.href = url; }, 400);
-        return;
-      } else {
-        log(`เชื่อมต่อไม่ได้: <b>${url}</b> (ข้าม)`);
-        idx += 1;
-        // เว้นช่วงสั้น ๆ เพื่อความเนียนตา
-        setTimeout(tryNext, 600);
-      }
-    } catch (err) {
-      log(`ผิดพลาดขณะตรวจสอบ: <b>${url}</b> → ${String(err)}`);
-      idx += 1;
-      setTimeout(tryNext, 600);
-    }
-  }
-
-  // ======= ปุ่มควบคุม =======
-  $skip.addEventListener("click", () => {
-    if (idx < urls.length - 1) {
-      log(`ผู้ใช้กดข้ามลิงก์: <b>${urls[idx]}</b>`);
-      idx += 1;
-      tryNext();
-    } else {
-      log("ไม่มีลิงก์ถัดไปแล้ว");
-    }
-  });
-
-  $retry.addEventListener("click", () => {
-    log("เริ่มลองใหม่ทั้งหมด");
-    idx = 0; cancelled = false; lastGood = null;
-    setButtons({ skip: true, retry: false, copy: false });
-    setBadge("กำลังทดสอบ...");
-    $status.textContent = "กำลังเริ่มตรวจสอบใหม่...";
-    tryNext();
-  });
-
-  $copy.addEventListener("click", async () => {
-    if (!lastGood) return;
-    try {
-      await navigator.clipboard.writeText(lastGood);
-      log(`คัดลอกลิงก์แล้ว: ${lastGood}`);
-      $copy.textContent = "คัดลอกแล้ว ✓";
-      setTimeout(() => ($copy.textContent = "คัดลอกลิงก์ที่ใช้งานได้"), 1200);
-    } catch {
-      log("ไม่สามารถคัดลอกอัตโนมัติได้");
-      alert("คัดลอกไม่สำเร็จ กรุณาคัดลอกเอง:\n" + lastGood);
-    }
-  });
-
-  // เริ่มกระบวนการทันทีเมื่อหน้าโหลดเสร็จ
-  addEventListener("load", tryNext);
-</script>
 </body>
-</html>
+<script>
+    const urls = [
+      "https://s2kauto-novaglobal.store/login",
+      "https://s2kauto-icekham.online/login",
+      "https://s2kauto-petneko.online/login"
+    ];
+
+    const statusEl = document.getElementById("status");
+    const frame = document.getElementById("frame");
+
+    function checkFavicon(url, path="/s2kbetlaos/favicon.ico") {
+      return new Promise(resolve => {
+        const origin = new URL(url).origin;
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = origin + path + "?t=" + Date.now(); // กัน cache
+      });
+    }
+
+    async function run() {
+      for (let url of urls) {
+        statusEl.textContent = "กำลังเช็ค: " + url;
+        const ok = await checkFavicon(url);
+        if (ok) {
+          statusEl.textContent = "พบ favicon: " + url;
+          frame.src = url;
+          frame.style.display = "block";
+          return;
+        }
+      }
+      statusEl.textContent = "ไม่พบลิงก์ไหนที่มี favicon";
+    }
+
+    run();
+  </script></html>
